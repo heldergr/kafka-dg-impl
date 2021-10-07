@@ -1,3 +1,5 @@
 .idea
 meet-kafka/target
 kafka-producers/target
+kafka-consumers/target
+certification-bootcamp/target
