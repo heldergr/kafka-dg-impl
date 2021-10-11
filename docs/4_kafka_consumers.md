@@ -128,24 +128,261 @@ to start multiple threads each with its own consumer.
 
 ## Commits and offsets
 
+- **commit**: the action of updating the current position a consumer in a partition
+    - it produces a message to Kafka, to a special **__consumer_offset** topic
+- this is a consumer should start consuming messages from a partition, regardless of when is the previous one or not
+- Important:
+    - If the committed offset is smaller than the offset of the last message the client pro‐
+      cessed, the messages between the last processed offset and the committed offset will
+      be processed twice
+    - If the committed offset is larger than the offset of the last message the client actually
+      processed, all messages between the last processed offset and the committed offset
+      will be missed by the consumer group
+
 ### Automatic commit
+
+- The easiest way to commit offsets is to allow the consumer to do it for you
+- If you configure **enable.auto.commit=true**, then every five seconds the consumer will
+  commit the largest offset your client received from poll()
+- The five-second interval is the default and is controlled by setting **auto.commit.interval.ms**
+- With autocommit enabled, a call to poll will always commit the last offset returned by
+  the previous poll
+    - It doesn’t know which events were actually processed, so it is critical
+  to always process all the events returned by poll() before calling poll() again
 
 ### Commit current offset
 
+- By setting auto.commit.offset=false , offsets will only be committed when the
+  application explicitly chooses to do so
+- The simplest and most reliable of the commit APIs is commitSync()
+- Drawback is that application is blocked until the broker responds to the commit request
+
+```java
+while (true) {
+    ConsumerRecords<String, String> records = consumer.poll(100);
+    for (ConsumerRecord<String, String> record : records) {
+        System.out.printf("topic = %s, partition = %s, offset =
+            %d, customer = %s, country = %s\n",
+            record.topic(), record.partition(), record.offset(), record.key(), record.value());
+    }
+    try {
+        consumer.commitSync();
+    } catch (CommitFailedException e) {
+        log.error("commit failed", e)
+    }
+}
+```
+
 ### Asynchronous commit
+
+- Drawback is that commit async does not retry. If it fails, it is lost
+- It is possible to pass a callback handler but we should be careful to retry commit async with callback handler because another subsequent commit could be successful and so we can have an ordering problem
+- 
+
+```java
+while (true) {
+    ConsumerRecords<String, String> records = consumer.poll(100);
+    for (ConsumerRecord<String, String> record : records) {
+        System.out.printf("topic = %s, partition = %s, offset = %d, customer = %s, country = %s\n", 
+            record.topic(), record.partition(), record.offset(), record.key(), record.value());
+    }
+    consumer.commitAsync();
+}
+```
+
+#### Retrying Async Commits
+
+A simple pattern to get commit order right for asynchronous
+retries is to use a monotonically increasing sequence number.
+Increase the sequence number every time you commit and add the
+sequence number at the time of the commit to the commitAsync
+callback. When you’re getting ready to send a retry, check if the
+commit sequence number the callback got is equal to the instance
+variable; if it is, there was no newer commit and it is safe to retry. If
+the instance sequence number is higher, don’t retry because a
+newer commit was already sent.
 
 ### Combining synchronous and asynchronous commits
 
+- use async commit but when closing the consumer use a sync one to make sure every message has its offset committed
+
+```java
+try {
+  while (true) {
+    ConsumerRecords<String, String> records = consumer.poll(100);
+    for (ConsumerRecord<String, String> record : records) {
+      System.out.printf("topic = %s, partition = %s, offset = %d,
+      customer = %s, country = %s\n",
+      record.topic(), record.partition(),
+      record.offset(), record.key(), record.value());
+    }
+    consumer.commitAsync();
+  }
+} catch (Exception e) {
+  log.error("Unexpected error", e);
+} finally {
+  try {
+    consumer.commitSync();
+  } finally {
+    consumer.close();
+  }
+}
+```
+
 ### Commit specified offsets
+
+- It's possible to commit in the middle of the batch to avoid having to process all those rows again if a rebalance occurs
+- There is a method signature where we can pass a list of offsets and partitions to commit 
+
+```java
+private Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+int count = 0;
+        
+while (true) {
+  ConsumerRecords<String, String> records = consumer.poll(100);
+  for (ConsumerRecord<String, String> record : records) {
+    System.out.printf("topic = %s, partition = %s, offset = %d,
+        customer = %s, country = %s\n",
+        record.topic(), record.partition(), record.offset(),
+        record.key(), record.value());
+    currentOffsets.put(new TopicPartition(record.topic(), record.partition()), new
+        OffsetAndMetadata(record.offset()+1, "no metadata"));
+    if (count % 1000 == 0)
+        consumer.commitAsync(currentOffsets, null);
+    count++;
+  }
+}
+```
 
 ## Rebalance listeners
 
+Some activities you may want to be before losing ownership of a partition in a rebalance:
+
+- commit offsets of the last event you’ve processed
+- if your consumer maintained a buffer with events that it only processes occasionally you will want to process the events
+you accumulated before losing ownership of the partition
+- perhaps you also need to close file handles, database connections, and such
+
+The consumer API allows you to run your own code when partitions are added or
+removed from the consumer
+
+- pass a ConsumerRebalanceListener when calling the subscribe()
+    - **public void onPartitionsRevoked(Collection<TopicPartition> partitions)**: called before the rebalancing starts and after the consumer stopped consuming messages
+        - this is where you want to commit offsets, so whoever gets this partition next will know where to start
+    - **public void onPartitionsAssigned(Collection<TopicPartition> partitions)**
+
 ## Consuming records with specific offsets
+
+- **seekToBeginning(TopicPartition tp)**: starts consuming at beginning
+- **seekToEnd(TopicPartition tp)**: starts consuming at the end
+- **seek()**: starts consuming at a specific position 
+
+```java
+public class SaveOffsetsOnRebalance implements ConsumerRebalanceListener {
+  public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+    commitDBTransaction();
+  }
+  public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+    for(TopicPartition partition: partitions)
+        consumer.seek(partition, getOffsetFromDB(partition));
+  }
+}
+
+consumer.subscribe(topics, new SaveOffsetOnRebalance(consumer));
+consumer.poll(0);
+for (TopicPartition partition: consumer.assignment())
+    consumer.seek(partition, getOffsetFromDB(partition));
+
+while (true) {
+    ConsumerRecords<String, String> records = consumer.poll(100);
+    for (ConsumerRecord<String, String> record : records) {
+        processRecord(record);
+        storeRecordInDB(record);
+        storeOffsetInDB(record.topic(), record.partition(), record.offset());
+    }
+    commitDBTransaction();
+}
+```
 
 ## But how do we exit?
 
 ## Deserializers
 
+- Kafka consumers require deserializers to convert byte arrays recieved from Kafka into Java objects
+- It should be obvious that the serializer used to produce events to Kafka must match the deserializer that will be used when consuming event
+
+### Custom deserializer
+
+```java
+import org.apache.kafka.common.errors.SerializationException;
+import java.nio.ByteBuffer;
+import java.util.Map;
+
+public class CustomerDeserializer implements  Deserializer<Customer> {
+
+  @Override
+  public void configure(Map configs, boolean isKey) {
+  // nothing to configure
+  }
+  
+  @Override
+  public Customer deserialize(String topic, byte[] data) {
+    int id;
+    int nameSize;
+    String name;
+    
+    try {
+        if (data == null)
+            return null;
+        if (data.length < 8)
+            throw new SerializationException("Size of data received by
+        IntegerDeserializer is shorter than expected");
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+        id = buffer.getInt();
+        String nameSize = buffer.getInt();
+        byte[] nameBytes = new Array[Byte](nameSize);
+        buffer.get(nameBytes);
+        name = new String(nameBytes, 'UTF-8');
+        return new Customer(id, name);
+    } catch (Exception e) {
+        throw new SerializationException("Error when serializing Customer to byte[] " + e);
+    }
+  }
+  
+  @Override
+  public void close() {
+      // nothing to close
+  }
+}
+```
+
+### Using Avro deserialization with Kafka consumer
+
+```java
+Properties props = new Properties();
+props.put("bootstrap.servers", "broker1:9092,broker2:9092");
+props.put("group.id", "CountryCounter");
+props.put("key.serializer", "org.apache.kafka.common.serialization.StringDeserializer");
+props.put("value.serializer", "io.confluent.kafka.serializers.KafkaAvroDeserializer");
+props.put("schema.registry.url", schemaUrl);
+
+String topic = "customerContacts";
+
+KafkaConsumer consumer = new  KafkaConsumer(createConsumerConfig(brokers, groupId, url));
+consumer.subscribe(Collections.singletonList(topic));
+System.out.println("Reading topic:" + topic);
+
+while (true) {
+    ConsumerRecords<String, Customer> records = consumer.poll(1000);
+    for (ConsumerRecord<String, Customer> record: records) {
+        System.out.println("Current customer name is: " +
+        record.value().getName());
+    }
+    consumer.commitSync();
+}
+```
+
 ## Standalone consumer: Why and How to Use a Consumer Without a Group
 
-
+- When you know exactly which partitions the consumer should read, you don’t subscribe to a topic—instead, you assign yourself a few partitions
+- A consumer can either subscribe to topics (and be part of a consumer group), or assign itself partitions, but not both at the same time

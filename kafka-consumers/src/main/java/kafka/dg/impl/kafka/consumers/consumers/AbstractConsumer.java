@@ -6,9 +6,14 @@ import java.util.Properties;
 
 public abstract class AbstractConsumer<K, V> {
     private String groupId;
+    protected boolean keepRunning = true;
 
     public AbstractConsumer(String groupId) {
         this.groupId = groupId;
+    }
+
+    public void setKeepRunning(boolean keepRunning) {
+        this.keepRunning = keepRunning;
     }
 
     protected Properties getProperties() {
@@ -23,5 +28,11 @@ public abstract class AbstractConsumer<K, V> {
 
     protected KafkaConsumer<K, V> createConsumer() {
         return new KafkaConsumer<K, V>(this.getProperties());
+    }
+
+    protected void consume() {}
+
+    public String getTopic() {
+        return null;
     }
 }

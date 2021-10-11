@@ -14,6 +14,7 @@
         <module>kafka-producers</module>
         <module>kafka-consumers</module>
         <module>certification-bootcamp</module>
+        <module>kafka-common</module>
     </modules>
 
     <properties>
