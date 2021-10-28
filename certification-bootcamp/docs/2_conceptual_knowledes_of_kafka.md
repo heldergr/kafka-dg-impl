@@ -2,11 +2,11 @@
 
 Of course, the best source for this is Confluent.
 
-    https://docs.confluent.io/platform/current/platform.html
+    :ok: https://docs.confluent.io/platform/current/platform.html
 
-    https://docs.confluent.io/platform/current/kafka/kafka-basics.html
+    :ok: https://docs.confluent.io/platform/current/kafka/kafka-basics.html
 
-    https://www.youtube.com/watch?v=AMFiukoEyts
+    :ok: https://www.youtube.com/watch?v=AMFiukoEyts
 
 ## What is confluent platform
 
@@ -21,4 +21,20 @@ Of course, the best source for this is Confluent.
 
 - confluent control center
     - GUI-based system for managing and monitoring Apache kafka
-- 
+
+## Kafka Basics on Confluent Platform
+
+- Reference: <https://docs.confluent.io/platform/current/kafka/kafka-basics.html#what-is-cp-and-its-relationship-to-ak>
+
+### How Confluent Platform fits in
+
+- Confluent Platform is a specialized distribution of Kafka at its core, with lots of cool features and additional APIs built in
+
+### Code examples and demo apps
+
+- [Kafka streams examples](https://github.com/confluentinc/kafka-streams-examples/)
+- [Demo scene examples](https://github.com/confluentinc/demo-scene/)
+
+## Video: The Confluent Platform
+
+- Reference: <https://www.youtube.com/watch?v=AMFiukoEyts>

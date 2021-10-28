@@ -17,43 +17,7 @@ Table of Contents
     13. Testing
     14. Tutorials
 
-## Introduction
-
-In this module, we’ll look at instruction that addresses specific areas of Confluent and Kafka development. While these areas are called out in the certification exam, you’ll find them to be critical for success in the Kafka and Confluent developer role. This isn’t an exhaustive list, but it will give you an understanding of where to start and what to research for a further deep dive.
-Conceptual Knowledge of Kafka
-Kafka Icon
-
-Topics, brokers, producers, consumers, schema, clusters…​ This is the foundation upon which everything else you learn will be built. Make sure that you fully understand the basics of Kafka before moving on to anything else.
-
-One of the best places to start with this is this video from Confluent’s Tim Berglund: https://www.confluent.io/what-is-apache-kafka/
-
-More useful study materials can be found here:
-
-    https://www.confluent.io/blog/apache-kafka-intro-how-kafka-works/
-
-    https://kafka.apache.org/intro
-
-    https://dzone.com/articles/what-is-kafka
-
-    https://www.confluent.io/resources/kafka-summit-2020/welcome-to-kafka-were-glad-youre-here/
-
-    https://www.confluent.io/online-talks/fundamentals-for-apache-kafka/
-
-    https://kafka.apache.org/videos#kafka_internals_fundamentals
-
-    https://www.confluent.io/blog/event-streaming-platform-1/
-
-## Conceptual Knowledge of Confluent Platform
-
-Of course, the best source for this is Confluent.
-
-    https://docs.confluent.io/platform/current/platform.html
-
-    https://docs.confluent.io/platform/current/kafka/kafka-basics.html
-
-    https://www.youtube.com/watch?v=AMFiukoEyts
-
-## Conceptual Knowledge of Building Applications
+## 3. Conceptual Knowledge of Building Applications
 
 Getting started with application development for Kafka and Confluent starts with understanding from a conceptual level how the applications connect, interact, and function within the Kafka and Confluent ecosystem.
 

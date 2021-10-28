@@ -12,7 +12,7 @@ Topics, brokers, producers, consumers, schema, clusters…​ This is the founda
 
 More useful study materials can be found here:
 
-    :ok: - https://www.confluent.io/blog/apache-kafka-intro-how-kafka-works/
+    :ok: https://www.confluent.io/blog/apache-kafka-intro-how-kafka-works/
 
     :ok: https://kafka.apache.org/intro
 
