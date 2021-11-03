@@ -4,3 +4,5 @@ kafka-producers/target
 kafka-consumers/target
 certification-bootcamp/target
 kafka-common/target
+kafka-streams/target
+kafka-streams-v2/target
