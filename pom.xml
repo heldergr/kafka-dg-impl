@@ -17,6 +17,7 @@
         <module>kafka-common</module>
         <module>kafka-streams</module>
         <module>kafka-streams-v2</module>
+        <module>offset-manager</module>
     </modules>
 
     <properties>

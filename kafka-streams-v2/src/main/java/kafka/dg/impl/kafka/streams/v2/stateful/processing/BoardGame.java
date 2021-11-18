@@ -15,19 +15,19 @@ import java.util.Properties;
 public class BoardGame {
     public static void main(String[] args) {
         StreamsBuilder builder = new StreamsBuilder();
-        KStream<String, ScoreEvent> scoreEvents =
-                builder.stream(
-                        "score-events",
-                        Consumed.with(Serdes.ByteArray(), JsonSerdes.ScoreEvent()))
-                        .selectKey((key, value) -> value.getPlayerId().toString());
-        KTable<String, Player> players =
-                builder.table(
-                        "players",
-                        Consumed.with(Serdes.String(), JsonSerdes.Player()));
-        GlobalKTable<String, Product> products =
-                builder.globalTable(
-                        "products",
-                        Consumed.with(Serdes.String(), JsonSerdes.Product()));
+        KStream<String, ScoreEvent> scoreEvents = null;
+//                builder.stream(
+//                        "score-events",
+//                        Consumed.with(Serdes.ByteArray(), JsonSerdes.ScoreEvent()))
+//                        .selectKey((key, value) -> value.getPlayerId().toString());
+//        KTable<String, Player> players =
+//                builder.table(
+//                        "players",
+//                        Consumed.with(Serdes.String(), JsonSerdes.Player()));
+//        GlobalKTable<String, Product> products =
+//                builder.globalTable(
+//                        "products",
+//                        Consumed.with(Serdes.String(), JsonSerdes.Product()));
 
         // Joining
 
@@ -36,23 +36,23 @@ public class BoardGame {
         ValueJoiner<ScoreWithPlayer, Product, Enriched> productJoiner =
                 (scoreWithPlayer, product) -> new Enriched(scoreWithPlayer, product);
 
-        Joined<String, ScoreEvent, Player> playerJoinParams = Joined.with(Serdes.String(), JsonSerdes.ScoreEvent(), JsonSerdes.Player());
+        Joined<String, ScoreEvent, Player> playerJoinParams = null; // Joined.with(Serdes.String(), JsonSerdes.ScoreEvent(), JsonSerdes.Player());
 
-        KStream<String, ScoreWithPlayer> withPlayers = scoreEvents.join(players, valueJoiner, playerJoinParams);
+        KStream<String, ScoreWithPlayer> withPlayers = null; // scoreEvents.join(players, valueJoiner, playerJoinParams);
 
         KeyValueMapper<String, ScoreWithPlayer, String> keyMapper =
                 (leftKey, scoreWithPlayer) -> {
                     return String.valueOf(scoreWithPlayer.getScoreEvent().getProductId());
                 };
 
-        KStream<String, Enriched> withProducts =
-                withPlayers.join(products, keyMapper, productJoiner);
+        KStream<String, Enriched> withProducts = null;
+//                withPlayers.join(products, keyMapper, productJoiner);
 
         // Grouping by
-        KGroupedStream<String, Enriched> grouped =
-                withProducts.groupBy(
-                        (key, value) -> value.getProductId().toString(),
-                        Grouped.with(Serdes.String(), JsonSerdes.Enriched()));
+        KGroupedStream<String, Enriched> grouped = null;
+//                withProducts.groupBy(
+//                        (key, value) -> value.getProductId().toString(),
+//                        Grouped.with(Serdes.String(), JsonSerdes.Enriched()));
 
 //        KGroupedStream<String, Enriched> groupedByKey =
 //                withProducts.groupByKey(
@@ -79,14 +79,14 @@ public class BoardGame {
         streams.start();
 
         // Interactive queries
-        KTable<String, HighScores> highScoresMaterialized =
-                grouped.aggregate(
-                        highScoresInitializer,
-                        highScoresAdder,
-                        Materialized.<String, HighScores, KeyValueStore<Bytes, byte[]>>
-                                        as("leader-boards")
-                                .withKeySerde(Serdes.String())
-                                .withValueSerde(JsonSerdes.HighScores()));
+        KTable<String, HighScores> highScoresMaterialized = null;
+//                grouped.aggregate(
+//                        highScoresInitializer,
+//                        highScoresAdder,
+//                        Materialized.<String, HighScores, KeyValueStore<Bytes, byte[]>>
+//                                        as("leader-boards")
+//                                .withKeySerde(Serdes.String())
+//                                .withValueSerde(JsonSerdes.HighScores()));
 
         ReadOnlyKeyValueStore<String, HighScores> stateStore =
                 streams.store(
@@ -98,7 +98,7 @@ public class BoardGame {
         HighScores highScores1 = stateStore.get("key");
 
         // Querying by range
-        KeyValueIterator<String, HighScores> range = stateStore.range(1, 7);
+        KeyValueIterator<String, HighScores> range = null; // stateStore.range(1, 7);
 
         // All entries
         KeyValueIterator<String, HighScores> all = stateStore.all();

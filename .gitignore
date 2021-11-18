@@ -6,3 +6,4 @@ certification-bootcamp/target
 kafka-common/target
 kafka-streams/target
 kafka-streams-v2/target
+offset-manager/target
