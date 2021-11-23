@@ -1,13 +1,13 @@
 package offset.manager.offset;
 
 import offset.manager.properties.ConsumerProperties;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class OffsetManager {
@@ -72,6 +72,35 @@ public class OffsetManager {
             // tente com poll e nao funcionou, nada foi consumido no teste apos
 //            consumer.poll(Duration.ofMillis(100));
             // tentei com position e funcionou
+            topicPartitions.forEach(consumer::position);
+        }
+    }
+
+    public void seekV2(final String topic, final int offset) {
+        System.out.println("Resetting to specific offset " + offset);
+        final BiConsumer<Consumer<String, String>, List<TopicPartition>> partitionSeeker = (consumer, topicPartitions) -> {
+            topicPartitions.forEach(topicPartition -> consumer.seek(topicPartition, offset));
+        };
+        this.runSeek(topic, partitionSeeker);
+    }
+
+    public void seekToBeginningV2(final String topic) {
+        System.out.println("Resetting offset to beginning...");
+        this.runSeek(topic, (consumer, topicPartitions) -> consumer.seekToBeginning(topicPartitions));
+    }
+
+    public void seekToEndV2(final String topic) {
+        System.out.println("Resetting offset to beginning to end...");
+        this.runSeek(topic, (consumer, topicPartitions) -> consumer.seekToEnd(topicPartitions));
+    }
+
+    private void runSeek(final String topic, final BiConsumer<Consumer<String, String>, List<TopicPartition>> partitionSeeker) {
+        final var props = ConsumerProperties.createProperties();
+        try (final var consumer = new KafkaConsumer<String, String>(props)) {
+            final var partitionInfos = consumer.partitionsFor(topic);
+            final var topicPartitions = partitionInfos.stream().map(this::createTopicPartition).collect(Collectors.toList());
+            consumer.assign(topicPartitions);
+            partitionSeeker.accept(consumer, topicPartitions);
             topicPartitions.forEach(consumer::position);
         }
     }
